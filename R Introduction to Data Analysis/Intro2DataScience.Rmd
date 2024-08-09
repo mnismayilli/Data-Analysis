@@ -1,0 +1,933 @@
+---
+title: "Introduction to Data Science in R"
+author: "Mehman Ismayilli"
+date: "2023-08-17"
+output:
+  pdf_document: default
+  pdf: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R basics
+
+
+```{r}
+library(dslabs)
+data("murders")
+```
+
+### Sorting
+From page 61
+
+`sort` function
+```{r}
+sort(murders$total)
+```
+`order` function
+```{r}
+index <- order(murders$total) ## generates index for murders
+states <- murders$abb[index] ## finds abbreviations
+```
+
+`max` and `which.max`
+```{r}
+max(murders$total)
+#find the index number
+ind_max <- which.max(murders$total)
+#find the particular state
+murders$state[ind_max]
+```
+`rank`
+```{r}
+rank(murders$total)
+```
+
+### Vector arithmetics
+
+California has the highest murder number. Is it so dangerous in California? To do so, let us find murder rate per 100 K in each state
+```{r}
+murder_rate <- murders$total/murders$population * 100000
+```
+
+Now find the state with the highest murder rate for 100 K
+
+```{r}
+murders$abb[order(murder_rate)]
+```
+
+You can see that the DC has the highest murder rate for 100 K.
+
+### Indexing
+
+Now indexing based on a criterion
+
+```{r}
+ind <- murder_rate < 0.71
+murders$state[ind]
+
+#change the condition 
+ind <- murder_rate <= 0.71
+murders$state[ind]
+
+#count how many in there
+sum(ind)
+```
+
+`which` function indexing
+
+```{r}
+ind <- which(murders$state=="California")
+murder_rate[ind]
+```
+
+`match`
+```{r}
+ind <- match(c("New York", "Florida", "Texas"), murders$state)
+murder_rate[ind]
+```
+
+`%in$`
+To check whether a set contains certain elements
+```{r}
+c("Boston", "Dakota", "Washington") %in% murders$state
+```
+
+### Exercise 2.14
+```{r}
+low <- murder_rate < 1
+ind <- which(low == TRUE)
+murders$state [ind]
+```
+
+
+```{r}
+ind <- which(low == TRUE & murders$region=="Northeast")
+murders$state[ind]
+```
+
+```{r}
+ind <- which(murder_rate < mean(murder_rate))
+length(ind)
+```
+
+```{r}
+ind <- match(c("AK", "MI", "IA"), murders$abb)
+murders$state[ind]
+```
+
+```{r}
+c("MA", "ME", "MI", "MO", "MU") %in% murders$abb
+```
+
+### Basic plots
+
+```{r}
+x <- murders$population / 10^6
+y <- murders$total
+plot(x, y)
+```
+
+For a quick plot that avoids accessing variables twice, we can use `with` function
+
+```{r}
+with(murders, plot(population, total))
+```
+
+histogram
+
+```{r}
+x <- with(murders, total/population * 100000)
+hist(x)
+```
+```{r}
+murders$state[which.max(x)]
+```
+
+`boxplot`
+```{r}
+boxplot(murder_rate~region, data = murders)
+```
+
+`image`
+```{r}
+x <- matrix(1:120, 12, 10)
+image(x)
+```
+
+## Chapter 3 Programming basics
+
+```{r}
+a <- 0
+
+if(a!=0){
+  print(1/a)
+} else{
+  print("No reciprocal for 0.")
+}
+```
+
+```{r}
+ind <- which.min(murder_rate)
+
+if (murder_rate[ind] <0.5){
+  print(murders$state[ind])
+} else {
+  print("No state has murder rate that below")
+}
+```
+
+A shorter version of `if` function, `ifelse`
+```{r}
+a <- 0
+ifelse(a>0, 1/a, NA)
+```
+
+```{r}
+a <- c(0, 1, 2, -4, 5)
+result <- ifelse(a>0, 1/a, NA)
+result
+```
+
+```{r}
+data("na_example")
+no_nas <- ifelse(is.na(na_example), 0, na_example)
+sum(is.na(no_nas))
+```
+
+`any` and `all` functions
+```{r}
+z <- c(TRUE, TRUE, FALSE)
+any(z)
+all(z)
+```
+
+### Defining functions
+```{r}
+avg <- function(x){
+  s <- sum(x)
+  n <- length(x)
+  s/n
+}
+```
+
+```{r}
+x <- 1:100
+avg(x)
+identical(mean(x), avg(x))
+```
+A bit complex function
+```{r}
+avg <- function(x, arithmetic=TRUE){
+  n <- length(x)
+  ifelse(arithmetic, sum(x)/n, prod(x)^(1/n))
+}
+avg(x, arithmetic = FALSE)
+```
+
+### For-loops
+```{r}
+compute_s_n <- function(n){
+  x <- 1:n
+  sum(x)
+}
+compute_s_n(100)
+```
+
+```{r}
+for(i in 3){
+  print(i)
+}
+```
+```{r}
+m <- 25
+s_n <- vector(length = m) #create an empty vector
+for(n in 1:m){
+  s_n[n] <- compute_s_n(n)
+}
+```
+
+```{r}
+n <- 1:m
+plot(n, s_n)
+```
+
+### Vectorisation and functionals
+
+```{r}
+x<- 1:10
+sqrt(x)
+y <- 1:10
+x*y
+```
+
+The following piece of code does not run the function on each entry of `n`. 
+```{r}
+n <- 1:25
+compute_s_n(n)
+```
+
+```{r}
+x <- 1:10
+sapply(x, sqrt)
+```
+
+fix the problem above
+```{r}
+n <- 1:25
+s_n <- sapply(n, compute_s_n)
+s_n
+```
+
+## The tidyverse
+```{r}
+library(tidyverse)
+```
+Create a new column by `mutate`
+```{r}
+murders <- mutate(murders, rate = total/population*100000)
+```
+
+Subsetting with `filter`
+```{r}
+filter(murders, rate <=0.81)
+```
+
+Selecting columns with `select` and create a new data tables
+
+```{r}
+new_table <- select(murders, state, region, rate)
+filter(new_table, rate <= .71)
+```
+
+```{r}
+murders <- mutate(murders, pop_in_millions = population/10^6)
+```
+
+```{r}
+select(murders, state, population) %>%head()
+```
+
+```{r}
+filter(murders, state == "New York")
+```
+Choose the data excluding "Florida"
+```{r}
+no_florida <- filter(murders, state != "Florida")
+```
+
+```{r}
+filter(murders, population < 5000000 & region == "Northeast")
+```
+
+```{r}
+filter(murders, state %in% c("New York", "Texas"))
+```
+
+### The pipe `%>%`
+```{r}
+murders %>% select(state, region, rate) %>% filter(rate <= .71)
+```
+
+```{r}
+16 %>% sqrt() %>% log2()
+```
+
+### Summarising data
+
+```{r}
+data("heights")
+```
+Average heights and st dev of females
+```{r}
+s <- heights %>% 
+  filter(sex == "Female") %>%
+  summarise(average = mean(height), st_dev = sd(height))
+s
+```
+
+
+```{r}
+s$average
+s$st_dev
+```
+
+```{r}
+heights %>% filter(sex == "Female") %>%
+  filter(sex == "Female") %>%
+  summarise(median = median(height), 
+            minimum = min(height), 
+            maximum = max(height))
+```
+
+```{r}
+heights %>% 
+  filter(sex == "Female") %>%
+  summarise(range = quantile(height, c(0, 0.5, 1)))
+```
+
+US murder rate
+```{r}
+us_murder_rate <- murders %>%
+  summarise(rate = sum(total)/sum(population)*100000)
+us_murder_rate
+```
+`pull`
+
+```{r}
+class(us_murder_rate)
+```
+`dplyr` returns outcome in a dataframe but we want to `pull` the output
+```{r}
+us_murder_rate %>% pull(rate)
+```
+which is equivalent of `us_murder_rate$rate`. To get the value immediated
+```{r}
+us_murder_rate <- murders %>%
+  summarise(rate = sum(total)/sum(population)*100000) %>% 
+  pull(rate)
+us_murder_rate
+```
+
+### Group then summarise with `group_by`
+
+Split data into *groups* and then compute summaries for each group.
+
+```{r}
+heights %>% group_by(sex) %>%
+  summarise(average = mean(height), standard_deviation = sd(height))
+```
+```{r}
+murders %>% group_by(region) %>%
+  summarise(median_rate = median(rate))
+```
+
+### Sorting data frames
+```{r}
+murders %>% arrange(population) %>% head()
+```
+
+```{r}
+murders %>% arrange(rate) %>% head()
+```
+
+`top_n` function
+Top `n` ordering, e.g., top 5 highest murder rate
+```{r}
+murders %>% top_n(5, rate)
+```
+
+```{r}
+murders %>% top_n(5, desc(rate))
+```
+
+
+```{r}
+library(NHANES)
+data(NHANES)
+```
+
+```{r}
+ref <- NHANES %>% filter(AgeDecade == " 20-29") %>%
+          summarise(average = mean(BPSysAve, na.rm=TRUE), st_dev = sd(BPSysAve, na.rm = TRUE)) 
+ref
+```
+```{r}
+ref_avg <- ref %>% pull(average)
+ref_avg
+```
+
+```{r}
+NHANES %>% filter(AgeDecade == " 20-29") %>% 
+  summarise(max_pressure = max(BPSysAve, na.rm = TRUE), 
+            min_pressure = min(BPSysAve, na.rm = TRUE)) %>%
+  pull(max_pressure, min_pressure)
+```
+
+```{r}
+NHANES %>% filter(Gender == "female") %>%
+  group_by(AgeDecade) %>%
+  summarise(average = mean(BPSysAve, na.rm=TRUE), st_dev = sd(BPSysAve, na.rm = TRUE))
+```
+
+```{r}
+NHANES %>% filter(Gender == "male") %>%
+  group_by(AgeDecade) %>%
+  summarise(average = mean(BPSysAve, na.rm=TRUE), st_dev = sd(BPSysAve, na.rm = TRUE))
+```
+
+`do` function
+
+```{r}
+my_summary <- function(dat){
+  x <- quantile(heights$height, c(0, 0.5, 1))
+  tibble(min=x[1], median = x[2], max = x[3])
+}
+```
+
+```{r}
+heights %>% 
+  group_by(sex) %>%
+  my_summary
+```
+However, we want this outcome for each sex; therefore, we can use `do` function instead
+```{r}
+heights %>% 
+  group_by(sex) %>%
+  do(my_summary(.))
+```
+if we do not use dot then it would not return any outcome. 
+
+### `purr` package
+It provides much advanced version of `sapply` functions to receive each ourput withing specified classification. 
+```{r}
+library("purrr")
+```
+
+```{r}
+n <- 25
+s_n <- sapply(n, compute_s_n)
+class(s_n)
+```
+`map()` works as `sapply` but always returns list
+```{r}
+s_n <- map(n, compute_s_n)
+s_n
+```
+for a numeric vector 
+```{r}
+s_n <- map_dbl(n, compute_s_n)
+s_n
+```
+
+### Tidyverse conditionals
+`case_when`
+
+```{r}
+x <- c(-2, -1, 0, 1, 2)
+case_when(x<0 ~ "Negative", x>0 ~ "Positive", TRUE ~ "Zero")
+```
+
+A more advanced but practical example showing how states are located at different regions
+```{r}
+murders %>% 
+  mutate(group = case_when(
+    abb %in% c("ME", "NH", "VT", "MA", "RI", "CT") ~ "New England",
+    abb %in% c("WA", "OR", "CA") ~ "West Coast", 
+    region == "South" ~ "South",
+    TRUE ~ "Other")) %>%
+  group_by(group) %>%
+  summarise(rate = sum(total)/sum(population)*10^5)
+```
+
+### Exercise 4.15
+part 1 
+```{r}
+is_tibble(murders)
+class(murders)
+```
+
+part 2 
+```{r}
+murders_tibble <- as_tibble(murders)
+```
+
+part 3
+```{r}
+murders %>% 
+  group_by(region)
+```
+
+part 4
+```{r}
+murders %>%
+  pull(population) %>% log %>% mean %>% exp
+
+```
+
+## Importing data
+
+### Paths and the working directory
+```{r}
+filename <- "murders.csv"
+dir <- system.file("extdata", package = "dslabs")
+fullpath <- file.path(dir, filename)
+file.copy(fullpath, "murders.csv")
+```
+
+Working directory
+```{r}
+wd <- getwd()
+```
+
+## ggplot2
+```{r}
+library(ggplot2)
+```
+
+Now let us develop a graph based step-by-step by calling `ggplot` objects
+```{r}
+#first define the data
+murders %>% ggplot() #alternatively, ggplot(data= murders)
+```
+No geometry is defined therefore it produces only a blank gray canvas. Now let us assign the plot to an object
+
+```{r}
+p <- murders %>% ggplot()
+class(p)
+
+p <- murders %>% ggplot() +
+  geom_point(aes(x=population/10^6, y=total)) 
+
+p
+#now label the points
+p+geom_text(aes(x=population/10^6, y=total, label= abb))
+```
+
+Final graph with all codes
+```{r}
+p <- murders %>% ggplot() +
+  geom_point(aes(x=population/10^6, y=total), size = 3) +
+  geom_text(aes(x=population/10^6, y=total, label=abb), nudge_x = 1.5)
+p
+```
+
+Previously we defined the mapping `aes()` twice, locally. However, let us now define it _globally_.
+
+```{r}
+p <- murders %>% ggplot(aes(population/10^6, total, label = abb)) +
+  geom_point(size=3) + 
+  geom_text(nudge_x = 1.5)
+
+p
+```
+_Scales_
+```{r}
+p <- murders %>% ggplot(aes(population/10^6, total, label = abb)) +
+  geom_point(aes(col=region),size=3) + 
+  geom_text(nudge_x =0.05)+
+  scale_x_log10() + #scale_x_continuous(trans = "log10") +
+  scale_y_log10()+  #scale_y_continuous(trans = "log10")
+  xlab("Populations in millions (log scale)") + 
+  ylab("Total number of murders (log scale)") +
+  ggtitle("US Gun Murders in 2010")
+
+p
+```
+
+Annotation, shapes and adjustments
+```{r}
+r <- murders %>% 
+  summarise(rate = sum(total)/sum(population)*10^6) %>%
+  pull(rate)
+
+#Now add the line into the graph
+p+geom_abline(intercept = log10(r), lty=2, color = "darkgrey")
+
+p <- p+scale_color_discrete(name="Region") #changes color legend title
+```
+
+### Add on packages for `ggplot`
+```{r}
+library(ggthemes)
+library(ggrepel)
+```
+
+```{r}
+p<- p+theme_economist()
+p
+```
+
+#### Putting it all together
+
+```{r}
+r <- murders %>% 
+  summarise(rate = sum(total)/sum(population)*10^6) %>%
+  pull(rate)
+
+p <- murders %>% ggplot(aes(population/10^6, total, label=abb))+
+  geom_abline(intercept = log10(r), lty=2, color = "darkgrey") +
+  geom_point(aes(col=region), size=3) +
+  geom_text_repel() +
+  scale_x_log10() +
+  scale_y_log10() + 
+  xlab("Populations in millions (log scale)") + 
+  ylab("Total number of murders (log scale)") +
+  ggtitle("US Gun Murders in 2010") +
+  scale_color_discrete(name = "Region") + 
+  theme_economist()
+p
+
+```
+
+`qplot` was decprecated in ggplots2 3.4.0; therefore, my suggestion is to use `plot` per se.
+
+```{r}
+plot(log10(murders$population), murders$total)
+```
+
+```{r}
+library(gridExtra)
+x <- log10(murders$population)
+y <- murders$total
+p1 <- qplot(x,y)
+p2 <- qplot(x)
+grid.arrange(p1, p2, ncol=2)
+```
+
+## Visualising data distributions
+
+Frequency table
+```{r}
+heights %>% count(sex) %>% mutate(proportion = n/sum(n))
+```
+
+```{r}
+index <- heights$sex == "Male"
+x <- heights$height[index]
+
+c(mean = mean(x), st_dev = sd(x))
+```
+
+Scaling 
+```{r}
+z <- scale(x)
+mean(abs(z)<2)
+```
+
+Quantile-quantile plots
+```{r}
+pnorm(-1.96)
+```
+
+`qnorm`
+```{r}
+qnorm(0.975)
+```
+
+```{r}
+qnorm(.975, mean = 5, sd=2)
+```
+```{r}
+p <- seq(.05, .95, .05)
+sample_quantiles <- quantile(x, p)
+sample_quantiles
+```
+
+```{r}
+theoretical_quantiles <- qnorm(p, mean(x), sd(x))
+```
+
+```{r}
+qplot(x=theoretical_quantiles, y=sample_quantiles) + geom_abline()
+```
+
+```{r}
+heights %>% filter(sex== "Male") %>% ggplot(aes(sample=scale(height))) +
+                                              geom_qq() + geom_abline()
+```
+
+```{r}
+murders %>% ggplot(aes(region))+geom_bar()
+```
+
+
+```{r}
+tab <- murders %>% count(region) %>% mutate(proportion = n/sum(n))
+tab
+tab %>% ggplot(aes(region, proportion))+geom_bar(stat = "identity")
+```
+
+```{r}
+heights %>% filter(sex == "Female") %>% ggplot(aes(height)) + 
+  geom_histogram(binwidth = 1, fill="blue", col = "black")+
+  xlab("Male heights in inches")+
+  ggtitle("Histogram")
+```
+
+```{r}
+heights %>% filter(sex == "Female") %>% 
+  ggplot(aes(height)) + geom_density(fill="pink", adjust = 2) #adjust the smoothness
+```
+
+```{r}
+heights %>% filter(sex == "Male") %>%
+  ggplot(aes(sample=height)) + geom_qq()
+```
+
+```{r}
+heights %>% filter(sex == "Male") %>% ggplot(aes(sample=scale(height))) +
+  geom_qq()+
+  geom_abline()
+```
+
+### Data visualisation in practice
+
+```{r}
+data(gapminder)
+gapminder %>% as_tibble()
+```
+Comparison of child mortality in five countries
+
+1. Sri Lanka versus Turkiye
+2. Poland versus South Korea
+3. Pakistan versus Vietnam
+4. Malaysia versus Russia
+5. Thailand versus South Africa
+
+```{r}
+gapminder %>% filter(year == 2015 & country %in% c("Sri Lanka", "Turkey", 
+                                                   "Poland", "South Korea", 
+                                                   "Pakistan", "Vietnam",
+                                                   "Malaysia", "Russia", 
+                                                   "Thailand", "South Africa")) %>%
+  select(country, infant_mortality)
+```
+
+```{r}
+gapminder %>% filter(year == 2015 & country %in% c("Poland", "South Korea")) %>%
+  select(country, infant_mortality)
+```
+
+```{r}
+filter(gapminder, year==1962) %>% 
+  ggplot(aes(fertility, life_expectancy, color=continent))+
+  geom_point()
+```
+ 
+ _Faceting_
+```{r}
+filter(gapminder, year %in% c(1962, 2012)) %>% 
+  ggplot(aes(fertility, life_expectancy, color=continent))+
+  geom_point()+
+  facet_grid(continent~year)
+```
+ 
+```{r}
+filter(gapminder, year %in% c(1962, 2012)) %>% 
+  ggplot(aes(fertility, life_expectancy, color=continent))+
+  geom_point()+
+  facet_grid(.~year)
+```
+
+`facet_wrap`
+
+```{r}
+years <- c(1962, 1980, 1990, 2000, 2012)
+continents <- c("Europe", "Asia")
+gapminder %>%
+  filter(year %in% years & continent %in% continents) %>%
+  ggplot(aes(fertility, life_expectancy, col=continent)) +
+  geom_point()+
+  facet_wrap(~year)
+```
+
+```{r}
+gapminder %>% filter(year %in% c(1962, 2012))%>%
+  ggplot(aes(fertility, life_expectancy, col=continent)) +
+  geom_point()+
+  facet_wrap(.~year, scales = "free")
+```
+
+_Time series plots_
+
+```{r}
+gapminder %>% 
+  filter(country == "United States") %>%
+  ggplot(aes(year, fertility))+
+  geom_line(colour="red")
+```
+
+```{r}
+countries <- c("South Korea", "Germany")
+
+gapminder %>% filter(country %in% countries) %>% 
+  ggplot(aes(year, fertility, col = country))+ 
+  geom_line()
+```
+
+Labels instead of legends
+
+```{r}
+labels <- data.frame(country=countries, x = c(1975, 1965), y = c(60, 72))
+
+gapminder %>%
+  filter(country %in% countries) %>% 
+  ggplot(aes(year, life_expectancy, col=country))+
+  geom_line()+
+  geom_text(data = labels, aes(x,y, label=country), size=3)+
+  theme(legend.position = "none")
+```
+
+```{r}
+gapminder <- gapminder %>% mutate(dollars_per_day = gdp/population/365)
+past_year <- 1970
+gapminder %>% filter(year == past_year & !is.na(gdp)) %>%
+  ggplot(aes(dollars_per_day))+
+  geom_histogram(binwidth = 1, fill="purple", color = "black")
+```
+
+```{r}
+gapminder <- gapminder %>% mutate(dollars_per_day = gdp/population/365)
+past_year <- 1970
+gapminder %>% filter(year == past_year & !is.na(gdp)) %>%
+  ggplot(aes(log2(dollars_per_day)))+
+  geom_histogram(binwidth = 1, fill="cyan", color = "black")
+```
+
+```{r}
+filter(gapminder, year == past_year) %>%
+  summarise(min = min(population), max = max(population))
+```
+
+```{r}
+gapminder %>%
+  filter(year == past_year) %>% 
+  ggplot(aes(log10(population)))+
+  geom_histogram(binwidth = 0.5, fill="red" ,color = "green")
+```
+
+```{r}
+gapminder <- gapminder %>% mutate(dollars_per_day = gdp/population/365)
+past_year <- 1970
+gapminder %>% filter(year == past_year & !is.na(gdp)) %>%
+  ggplot(aes(dollars_per_day))+
+  geom_histogram(binwidth = 1, color = "black") +
+  scale_x_continuous(trans = "log2")
+```
+
+```{r}
+gapminder <- gapminder %>% 
+  mutate(group = case_when(
+    region %in% c("Western Europe", "Northern Europe","Southern Europe",
+                  "Northern America","Australia and New Zealand") ~ "West",
+    region %in% c("Eastern Asia", "South-Eastern Asia") ~ "East Asia",
+    region %in% c("Caribbean", "Central America",
+                  "South America") ~ "Latin America",
+    continent == "Africa" & region != "Northern Africa" ~ "Sub-Saharan",
+    TRUE ~ "Others"))
+```
+
+
+```{r}
+gapminder %>% 
+  filter(year == past_year & !is.na(gdp)) %>%
+  mutate(region = reorder(region, dollars_per_day, FUN = median)) %>%
+  ggplot(aes(dollars_per_day, region))+
+  geom_point()+
+  scale_x_continuous(trans="log2")
+```
+
+```{r}
+p <- gapminder %>% 
+  filter(year == past_year & !is.na(gdp)) %>%
+  ggplot(aes(group, dollars_per_day)) +
+  geom_boxplot()+
+  scale_x_continuous(trans = "log2")+
+  xlab("")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+p
+```
+
